@@ -280,6 +280,13 @@
 - Hiroki Teranishi <https://github.com/chantera>
 - Ruben Cartuyvels <https://github.com/rubencart>
 - Dalton Pearson <https://github.com/daltonpearson>
+- Robby Horvath <https://github.com/robbyhorvath>
+- Gavish Poddar <https://github.com/gavishpoddar>
+- Saibo Geng <https://github.com/Saibo-creator>
+- Ahmet Yildirim <https://github.com/RnDevelover>
+- Yuta Nakamura <https://github.com/yutanakamura-tky>
+- Adam Hawley <https://github.com/adamjhawley>
+- Panagiotis Simakis <https://github.com/sp1thas>
 
 ## Others whose work we've taken and included in NLTK, but who didn't directly contribute it:
 

@@ -3,7 +3,7 @@
 # Copyright (C) 2001-2021 NLTK Project
 # Author: Steven Bird <stevenbird1@gmail.com>
 #	 Edward Loper <edloper@gmail.com>
-# URL: <http://nltk.org/>
+# URL: <https://www.nltk.org/>
 # For license information, see LICENSE.TXT
 
 PYTHON = python
@@ -51,10 +51,11 @@ windist: clean_code
 ########################################################################
 
 clean: clean_code
-	rm -rf build iso dist api MANIFEST nltk-$(VERSION) nltk.egg-info
+	rm -rf build web/_build iso dist api MANIFEST nltk-$(VERSION) nltk.egg-info
 
 clean_code:
 	rm -f `find nltk -name '*.pyc'`
 	rm -f `find nltk -name '*.pyo'`
 	rm -f `find . -name '*~'`
+	rm -rf `find . -name '__pycache__'`
 	rm -f MANIFEST # regenerate manifest from MANIFEST.in

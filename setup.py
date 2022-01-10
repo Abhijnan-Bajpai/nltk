@@ -3,14 +3,12 @@
 # Setup script for the Natural Language Toolkit
 #
 # Copyright (C) 2001-2021 NLTK Project
-# Author: Steven Bird <stevenbird1@gmail.com>
-#         Edward Loper <edloper@gmail.com>
-#         Ewan Klein <ewan@inf.ed.ac.uk>
-# URL: <http://nltk.org/>
+# Author: NLTK Team <nltk.team@gmail.com>
+# URL: <https://www.nltk.org/>
 # For license information, see LICENSE.TXT
 
 # Work around mbcs bug in distutils.
-# http://bugs.python.org/issue10945
+# https://bugs.python.org/issue10945
 import codecs
 
 try:
@@ -33,7 +31,6 @@ from setuptools import find_packages, setup
 # Specify groups of optional dependencies
 extras_require = {
     "machine_learning": [
-        "gensim<4.0.0",
         "numpy",
         "python-crfsuite",
         "scikit-learn",
@@ -56,7 +53,7 @@ console_scripts = """
 nltk=nltk.cli:cli
 """
 
-_project_homepage = "http://nltk.org/"
+_project_homepage = "https://www.nltk.org/"
 
 setup(
     name="nltk",
@@ -70,7 +67,7 @@ setup(
     },
     long_description="""\
 The Natural Language Toolkit (NLTK) is a Python package for
-natural language processing.  NLTK requires Python 3.6, 3.7, 3.8, or 3.9.""",
+natural language processing.  NLTK requires Python 3.7, 3.8, 3.9 or 3.10.""",
     license="Apache License, Version 2.0",
     keywords=[
         "NLP",
@@ -86,10 +83,10 @@ natural language processing.  NLTK requires Python 3.6, 3.7, 3.8, or 3.9.""",
         "natural language",
         "text analytics",
     ],
-    maintainer="Steven Bird",
-    maintainer_email="stevenbird1@gmail.com",
-    author="Steven Bird",
-    author_email="stevenbird1@gmail.com",
+    maintainer="NLTK Team",
+    maintainer_email="nltk.team@gmail.com",
+    author="NLTK Team",
+    author_email="nltk.team@gmail.com",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
@@ -98,10 +95,10 @@ natural language processing.  NLTK requires Python 3.6, 3.7, 3.8, or 3.9.""",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
@@ -113,11 +110,11 @@ natural language processing.  NLTK requires Python 3.6, 3.7, 3.8, or 3.9.""",
         "Topic :: Text Processing :: Linguistic",
     ],
     package_data={"nltk": ["test/*.doctest", "VERSION"]},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "click",
         "joblib",
-        "regex",
+        "regex>=2021.8.3",
         "tqdm",
     ],
     extras_require=extras_require,

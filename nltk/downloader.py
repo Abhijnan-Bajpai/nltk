@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2001-2021 NLTK Project
 # Author: Edward Loper <edloper@gmail.com>
-# URL: <http://nltk.org/>
+# URL: <https://www.nltk.org/>
 # For license information, see LICENSE.TXT
 
 """
@@ -167,6 +167,7 @@ import sys
 import textwrap
 import threading
 import time
+import warnings
 import zipfile
 from hashlib import md5
 from xml.etree import ElementTree
@@ -695,9 +696,9 @@ class Downloader:
 
         # Ensure the download_dir exists
         if not os.path.exists(download_dir):
-            os.mkdir(download_dir)
+            os.makedirs(download_dir)
         if not os.path.exists(os.path.join(download_dir, info.subdir)):
-            os.mkdir(os.path.join(download_dir, info.subdir))
+            os.makedirs(os.path.join(download_dir, info.subdir))
 
         # Download the file.  This will raise an IOError if the url
         # is not found.
@@ -2320,11 +2321,9 @@ def build_index(root, base_url):
     # Put it all together
     top_elt = ElementTree.Element("nltk_data")
     top_elt.append(ElementTree.Element("packages"))
-    for package in packages:
-        top_elt[0].append(package)
+    top_elt[0].extend(sorted(packages, key=lambda package: package.get("id")))
     top_elt.append(ElementTree.Element("collections"))
-    for collection in collections:
-        top_elt[1].append(collection)
+    top_elt[1].extend(sorted(collections, key=lambda collection: collection.get("id")))
 
     _indent_xml(top_elt)
     return top_elt
@@ -2391,8 +2390,7 @@ def _find_collections(root):
     Helper for ``build_index()``: Yield a list of ElementTree.Element
     objects, each holding the xml for a single package collection.
     """
-    packages = []
-    for dirname, subdirs, files in os.walk(root):
+    for dirname, _subdirs, files in os.walk(root):
         for filename in files:
             if filename.endswith(".xml"):
                 xmlfile = os.path.join(dirname, filename)
@@ -2448,6 +2446,18 @@ def _find_packages(root):
                     )
 
                 yield pkg_xml, zf, relpath
+
+            elif filename.endswith(".zip"):
+                # Warn user in case a .xml does not exist for a .zip
+                resourcename = os.path.splitext(filename)[0]
+                xmlfilename = os.path.join(dirname, resourcename + ".xml")
+                if not os.path.exists(xmlfilename):
+                    warnings.warn(
+                        f"{filename} exists, but {resourcename + '.xml'} cannot be found! "
+                        f"This could mean that {resourcename} can not be downloaded.",
+                        stacklevel=2,
+                    )
+
         # Don't recurse into svn subdirectories:
         try:
             subdirs.remove(".svn")

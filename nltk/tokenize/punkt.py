@@ -7,7 +7,7 @@
 #         Edward Loper <edloper@gmail.com> (rewrite)
 #         Joel Nothman <jnothman@student.usyd.edu.au> (almost rewrite)
 #         Arthur Darcet <arthur@darcet.fr> (fixes)
-# URL: <http://nltk.org/>
+# URL: <https://www.nltk.org/>
 # For license information, see LICENSE.TXT
 
 r"""
@@ -266,7 +266,6 @@ class PunktLanguageVars:
         return self._word_tokenizer_re().findall(s)
 
     _period_context_fmt = r"""
-        \S*                          # some word material
         %(SentEndChars)s             # a potential sentence ending
         (?=(?P<after_tok>
             %(NonWord)s              # either other punctuation
@@ -308,18 +307,18 @@ numeric tokens are changed to ##number## and hence contain alpha.)"""
 # ////////////////////////////////////////////////////////////
 
 
-def _pair_iter(it):
+def _pair_iter(iterator):
     """
     Yields pairs of tokens from the given iterator such that each input
     token will appear as the first element in a yielded tuple. The last
     pair will have None as its second element.
     """
-    it = iter(it)
+    iterator = iter(iterator)
     try:
-        prev = next(it)
+        prev = next(iterator)
     except StopIteration:
         return
-    for el in it:
+    for el in iterator:
         yield (prev, el)
         prev = el
     yield (prev, None)
@@ -369,18 +368,18 @@ class PunktParameters:
         self.ortho_context[typ] |= flag
 
     def _debug_ortho_context(self, typ):
-        c = self.ortho_context[typ]
-        if c & _ORTHO_BEG_UC:
+        context = self.ortho_context[typ]
+        if context & _ORTHO_BEG_UC:
             yield "BEG-UC"
-        if c & _ORTHO_MID_UC:
+        if context & _ORTHO_MID_UC:
             yield "MID-UC"
-        if c & _ORTHO_UNK_UC:
+        if context & _ORTHO_UNK_UC:
             yield "UNK-UC"
-        if c & _ORTHO_BEG_LC:
+        if context & _ORTHO_BEG_LC:
             yield "BEG-LC"
-        if c & _ORTHO_MID_LC:
+        if context & _ORTHO_MID_LC:
             yield "MID-LC"
-        if c & _ORTHO_UNK_LC:
+        if context & _ORTHO_UNK_LC:
             yield "UNK-LC"
 
 
@@ -401,8 +400,8 @@ class PunktToken:
         self.type = self._get_type(tok)
         self.period_final = tok.endswith(".")
 
-        for p in self._properties:
-            setattr(self, p, None)
+        for prop in self._properties:
+            setattr(self, prop, None)
         for k in params:
             setattr(self, k, params[k])
 
@@ -456,7 +455,7 @@ class PunktToken:
     def first_case(self):
         if self.first_lower:
             return "lower"
-        elif self.first_upper:
+        if self.first_upper:
             return "upper"
         return "none"
 
@@ -570,8 +569,8 @@ class PunktBaseClass:
                 yield self._Token(tok, parastart=parastart, linestart=True)
                 parastart = False
 
-                for t in line_toks:
-                    yield self._Token(t)
+                for tok in line_toks:
+                    yield self._Token(tok)
             else:
                 parastart = True
 
@@ -817,16 +816,16 @@ class PunktTrainer(PunktBaseClass):
         collocations and sentence starters.
         """
         self._params.clear_sent_starters()
-        for typ, ll in self._find_sent_starters():
+        for typ, log_likelihood in self._find_sent_starters():
             self._params.sent_starters.add(typ)
             if verbose:
-                print(f"  Sent Starter: [{ll:6.4f}] {typ!r}")
+                print(f"  Sent Starter: [{log_likelihood:6.4f}] {typ!r}")
 
         self._params.clear_collocations()
-        for (typ1, typ2), ll in self._find_collocations():
+        for (typ1, typ2), log_likelihood in self._find_collocations():
             self._params.collocations.add((typ1, typ2))
             if verbose:
-                print(f"  Collocation: [{ll:6.4f}] {typ1!r}+{typ2!r}")
+                print(f"  Collocation: [{log_likelihood:6.4f}] {typ1!r}+{typ2!r}")
 
         self._finalized = True
 
@@ -971,11 +970,11 @@ class PunktTrainer(PunktBaseClass):
             # Let <a> be the candidate without the period, and <b>
             # be the period.  Find a log likelihood ratio that
             # indicates whether <ab> occurs as a single unit (high
-            # value of ll), or as two independent units <a> and
-            # <b> (low value of ll).
+            # value of log_likelihood), or as two independent units <a> and
+            # <b> (low value of log_likelihood).
             count_with_period = self._type_fdist[typ + "."]
             count_without_period = self._type_fdist[typ]
-            ll = self._dunning_log_likelihood(
+            log_likelihood = self._dunning_log_likelihood(
                 count_with_period + count_without_period,
                 self._num_period_toks,
                 count_with_period,
@@ -992,7 +991,7 @@ class PunktTrainer(PunktBaseClass):
             f_penalty = int(self.IGNORE_ABBREV_PENALTY) or math.pow(
                 num_nonperiods, -count_without_period
             )
-            score = ll * f_length * f_periods * f_penalty
+            score = log_likelihood * f_length * f_periods * f_penalty
 
             yield typ, score, is_add
 
@@ -1004,7 +1003,7 @@ class PunktTrainer(PunktBaseClass):
         """
         self._params.clear_abbrevs()
         tokens = (typ for typ in self._type_fdist if typ and typ.endswith("."))
-        for abbr, score, is_add in self._reclassify_abbrev_types(tokens):
+        for abbr, score, _is_add in self._reclassify_abbrev_types(tokens):
             if score >= self.ABBREV:
                 self._params.abbrev_types.add(abbr)
 
@@ -1046,7 +1045,7 @@ class PunktTrainer(PunktBaseClass):
         # and (iii) never occus with an uppercase letter
         # sentence-internally.
         # [xx] should the check for (ii) be modified??
-        elif next_tok.first_lower:
+        if next_tok.first_lower:
             typ2 = next_tok.type_no_sentperiod
             typ2ortho_context = self._params.ortho_context[typ2]
             if (typ2ortho_context & _ORTHO_BEG_UC) and not (
@@ -1090,19 +1089,19 @@ class PunktTrainer(PunktBaseClass):
         p1 = count_ab / count_a
         try:
             p2 = (count_b - count_ab) / (N - count_a)
-        except ZeroDivisionError as e:
+        except ZeroDivisionError:
             p2 = 1
 
         try:
             summand1 = count_ab * math.log(p) + (count_a - count_ab) * math.log(1.0 - p)
-        except ValueError as e:
+        except ValueError:
             summand1 = 0
 
         try:
             summand2 = (count_b - count_ab) * math.log(p) + (
                 N - count_a - count_b + count_ab
             ) * math.log(1.0 - p)
-        except ValueError as e:
+        except ValueError:
             summand2 = 0
 
         if count_a == count_ab or p1 <= 0 or p1 >= 1:
@@ -1164,14 +1163,14 @@ class PunktTrainer(PunktBaseClass):
                 and self.MIN_COLLOC_FREQ < col_count <= min(typ1_count, typ2_count)
             ):
 
-                ll = self._col_log_likelihood(
+                log_likelihood = self._col_log_likelihood(
                     typ1_count, typ2_count, col_count, self._type_fdist.N()
                 )
                 # Filter out the not-so-collocative
-                if ll >= self.COLLOCATION and (
+                if log_likelihood >= self.COLLOCATION and (
                     self._type_fdist.N() / typ1_count > typ2_count / col_count
                 ):
-                    yield (typ1, typ2), ll
+                    yield (typ1, typ2), log_likelihood
 
     # ////////////////////////////////////////////////////////////
     # { Sentence-Starter Finder
@@ -1206,7 +1205,7 @@ class PunktTrainer(PunktBaseClass):
                 # needed after freq_threshold
                 continue
 
-            ll = self._col_log_likelihood(
+            log_likelihood = self._col_log_likelihood(
                 self._sentbreak_count,
                 typ_count,
                 typ_at_break_count,
@@ -1214,11 +1213,11 @@ class PunktTrainer(PunktBaseClass):
             )
 
             if (
-                ll >= self.SENT_STARTER
+                log_likelihood >= self.SENT_STARTER
                 and self._type_fdist.N() / self._sentbreak_count
                 > typ_count / typ_at_break_count
             ):
-                yield typ, ll
+                yield typ, log_likelihood
 
     def _get_sentbreak_count(self, tokens):
         """
@@ -1284,8 +1283,7 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         See format_debug_decision() to help make this output readable.
         """
 
-        for match in self._lang_vars.period_context_re().finditer(text):
-            decision_text = match.group() + match.group("after_tok")
+        for match, decision_text in self._match_potential_end_contexts(text):
             tokens = self._tokenize_words(decision_text)
             tokens = list(self._annotate_first_pass(tokens))
             while tokens and not tokens[0].tok.endswith(self._lang_vars.sent_end_chars):
@@ -1321,8 +1319,8 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         slices = self._slices_from_text(text)
         if realign_boundaries:
             slices = self._realign_boundaries(text, slices)
-        for sl in slices:
-            yield (sl.start, sl.stop)
+        for sentence in slices:
+            yield (sentence.start, sentence.stop)
 
     def sentences_from_text(self, text, realign_boundaries=True):
         """
@@ -1333,10 +1331,68 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         """
         return [text[s:e] for s, e in self.span_tokenize(text, realign_boundaries)]
 
+    def _match_potential_end_contexts(self, text):
+        """
+        Given a text, find the matches of potential sentence breaks,
+        alongside the contexts surrounding these sentence breaks.
+
+        Since the fix for the ReDOS discovered in issue #2866, we no longer match
+        the word before a potential end of sentence token. Instead, we use a separate
+        regex for this. As a consequence, `finditer`'s desire to find non-overlapping
+        matches no longer aids us in finding the single longest match.
+        Where previously, we could use::
+
+            >>> pst = PunktSentenceTokenizer()
+            >>> text = "Very bad acting!!! I promise."
+            >>> list(pst._lang_vars.period_context_re().finditer(text)) # doctest: +SKIP
+            [<re.Match object; span=(9, 18), match='acting!!!'>]
+
+        Now we have to find the word before (i.e. 'acting') separately, and `finditer`
+        returns::
+
+            >>> pst = PunktSentenceTokenizer()
+            >>> text = "Very bad acting!!! I promise."
+            >>> list(pst._lang_vars.period_context_re().finditer(text)) # doctest: +NORMALIZE_WHITESPACE
+            [<re.Match object; span=(15, 16), match='!'>,
+            <re.Match object; span=(16, 17), match='!'>,
+            <re.Match object; span=(17, 18), match='!'>]
+
+        So, we need to find the word before the match from right to left, and then manually remove
+        the overlaps. That is what this method does::
+
+            >>> pst = PunktSentenceTokenizer()
+            >>> text = "Very bad acting!!! I promise."
+            >>> pst._match_potential_end_contexts(text)
+            [(<re.Match object; span=(17, 18), match='!'>, 'acting!!! I')]
+
+        :param text: String of one or more sentences
+        :type text: str
+        :return: List of match-context tuples.
+        :rtype: List[Tuple[re.Match, str]]
+        """
+        before_words = {}
+        matches = []
+        for match in reversed(list(self._lang_vars.period_context_re().finditer(text))):
+            # Ignore matches that have already been captured by matches to the right of this match
+            if matches and match.end() > before_start:
+                continue
+            # Find the word before the current match
+            split = text[: match.start()].rsplit(maxsplit=1)
+            before_start = len(split[0]) if len(split) == 2 else 0
+            before_words[match] = split[-1] if split else ""
+            matches.append(match)
+
+        return [
+            (
+                match,
+                before_words[match] + match.group() + match.group("after_tok"),
+            )
+            for match in matches[::-1]
+        ]
+
     def _slices_from_text(self, text):
         last_break = 0
-        for match in self._lang_vars.period_context_re().finditer(text):
-            context = match.group() + match.group("after_tok")
+        for match, context in self._match_potential_end_contexts(text):
             if self.text_contains_sentbreak(context):
                 yield slice(last_break, match.end())
                 if match.group("next_tok"):
@@ -1362,31 +1418,31 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
             ["(Sent1.)", "Sent2."].
         """
         realign = 0
-        for sl1, sl2 in _pair_iter(slices):
-            sl1 = slice(sl1.start + realign, sl1.stop)
-            if not sl2:
-                if text[sl1]:
-                    yield sl1
+        for sentence1, sentence2 in _pair_iter(slices):
+            sentence1 = slice(sentence1.start + realign, sentence1.stop)
+            if not sentence2:
+                if text[sentence1]:
+                    yield sentence1
                 continue
 
-            m = self._lang_vars.re_boundary_realignment.match(text[sl2])
+            m = self._lang_vars.re_boundary_realignment.match(text[sentence2])
             if m:
-                yield slice(sl1.start, sl2.start + len(m.group(0).rstrip()))
+                yield slice(sentence1.start, sentence2.start + len(m.group(0).rstrip()))
                 realign = m.end()
             else:
                 realign = 0
-                if text[sl1]:
-                    yield sl1
+                if text[sentence1]:
+                    yield sentence1
 
     def text_contains_sentbreak(self, text):
         """
         Returns True if the given text includes a sentence break.
         """
         found = False  # used to ignore last token
-        for t in self._annotate_tokens(self._tokenize_words(text)):
+        for tok in self._annotate_tokens(self._tokenize_words(text)):
             if found:
                 return True
-            if t.sentbreak:
+            if tok.sentbreak:
                 found = True
         return False
 
@@ -1448,15 +1504,15 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         pos = 0
 
         # A regular expression that finds pieces of whitespace:
-        WS_REGEXP = re.compile(r"\s*")
+        white_space_regexp = re.compile(r"\s*")
 
         sentence = ""
         for aug_tok in tokens:
             tok = aug_tok.tok
 
             # Find the whitespace before this token, and update pos.
-            ws = WS_REGEXP.match(text, pos).group()
-            pos += len(ws)
+            white_space = white_space_regexp.match(text, pos).group()
+            pos += len(white_space)
 
             # Some of the rules used by the punkt word tokenizer
             # strip whitespace out of the text, resulting in tokens
@@ -1477,7 +1533,7 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
             # sentence, then include any whitespace that separated it
             # from the previous token.
             if sentence:
-                sentence += ws
+                sentence += white_space
             sentence += tok
 
             # If we're at a sentence break, then start a new sentence.
@@ -1519,9 +1575,9 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         tokens, making use of the orthographic heuristic (4.1.1), collocation
         heuristic (4.1.2) and frequent sentence starter heuristic (4.1.3).
         """
-        for t1, t2 in _pair_iter(tokens):
-            self._second_pass_annotation(t1, t2)
-            yield t1
+        for token1, token2 in _pair_iter(tokens):
+            self._second_pass_annotation(token1, token2)
+            yield token1
 
     def _second_pass_annotation(self, aug_tok1, aug_tok2):
         """
@@ -1532,13 +1588,10 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
         if not aug_tok2:
             return
 
-        tok = aug_tok1.tok
         if not aug_tok1.period_final:
             # We only care about words ending in periods.
             return
-
         typ = aug_tok1.type_no_period
-        next_tok = aug_tok2.tok
         next_typ = aug_tok2.type_no_sentperiod
         tok_is_initial = aug_tok1.is_initial
 
@@ -1588,8 +1641,7 @@ class PunktSentenceTokenizer(PunktBaseClass, TokenizerI):
                 aug_tok1.abbr = True
                 if tok_is_initial:
                     return REASON_INITIAL_WITH_ORTHOGRAPHIC_HEURISTIC
-                else:
-                    return REASON_NUMBER_WITH_ORTHOGRAPHIC_HEURISTIC
+                return REASON_NUMBER_WITH_ORTHOGRAPHIC_HEURISTIC
 
             # Special heuristic for initials: if orthogrpahic
             # heuristic is unknown, and next word is always
@@ -1665,5 +1717,5 @@ def demo(text, tok_cls=PunktSentenceTokenizer, train_cls=PunktTrainer):
     trainer.INCLUDE_ALL_COLLOCS = True
     trainer.train(text)
     sbd = tok_cls(trainer.get_params())
-    for l in sbd.sentences_from_text(text):
-        print(cleanup(l))
+    for sentence in sbd.sentences_from_text(text):
+        print(cleanup(sentence))
